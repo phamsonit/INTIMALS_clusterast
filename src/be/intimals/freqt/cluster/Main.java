@@ -4,6 +4,8 @@
 package be.intimals.freqt.cluster;
 
 import java.lang.String;
+import java.nio.file.Paths;
+import java.util.regex.Pattern;
 import java.io.*;
 
 public class Main {
@@ -52,7 +54,7 @@ public class Main {
         String algorithmName = "1";// = args[3];
         String numberClusters = "10";// = args[4];
         String svd = "none";// = args[5];
-
+        
         for(int i=0; i<args.length; ++i){
             if(args[i].toLowerCase().equals("--input")){
                 inputDirectory = args[i+1];
@@ -87,9 +89,13 @@ public class Main {
             System.exit(2);
         }
         //create directory to store clusters
-        String databaseName = inputDirectory.split("/")[inputDirectory.split("/").length-1];
-        outputDirectory +=  "/" + databaseName + "_" + createDataBaseOption + "_" + algorithmName + "_"+ numberClusters + "_" + svd;
-
+        String databaseName = "";
+        if(inputDirectory.split("/").length > 1)
+        	databaseName = inputDirectory.split("/")[inputDirectory.split("/").length-1];
+        else if(inputDirectory.split(Pattern.quote("\\")).length > 1)
+        	databaseName = inputDirectory.split(Pattern.quote("\\"))[inputDirectory.split(Pattern.quote("\\")).length-1];
+        //Removed the extra folder
+        //outputDirectory = Paths.get(outputDirectory, databaseName + "_" + createDataBaseOption + "_" + algorithmName + "_"+ numberClusters + "_" + svd).toString();
         //run cluster algorithm
         Cluster cluster = new Cluster(inputDirectory, outputDirectory, createDataBaseOption, algorithmName, numberClusters, svd);
         cluster.run();

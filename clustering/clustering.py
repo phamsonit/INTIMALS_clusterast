@@ -1,8 +1,8 @@
 # Module sys has to be imported:
 import sys
 
-from matplotlib import pyplot as plt
-import plotly.figure_factory as ff
+#from matplotlib import pyplot as plt
+#import plotly.figure_factory as ff
 from scipy.spatial.distance import pdist
 from scipy.cluster import hierarchy
 from sklearn.cluster import KMeans
@@ -14,7 +14,6 @@ outputFile = sys.argv[2]
 algorithmName = sys.argv[3]
 numClusters = int(sys.argv[4])
 svd = sys.argv[5]
-
 #inputFile = "jhotdraw.csv"
 #outputFile = "output.txt"
 #algorithmName = "1"
@@ -39,6 +38,7 @@ if svd == "svd":
 else:
     CD = DF
 
+print(algorithmName)
 if algorithmName == "1":
     print("hierarchy")
     #create hierarchical clustering

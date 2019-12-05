@@ -302,37 +302,47 @@ public class Cluster {
                     }
                 }
                 //put the last cluster to clustersFiles
-                //System.out.println("\nnumber clusters: "+foundClusters.size());
-                //copy all files in a cluster to folder "cluster_i", i is the id of cluster
+                System.out.println("\nnumber clusters: "+foundClusters.size());
+                //copy all files in a cluster to folder "fold_i", i is the id of cluster
                 for (Map.Entry<String, Vector<String>> entry : foundClusters.entrySet()) {
-                    String folderName = outputDir+"/cluster_" + entry.getKey();
-                    System.out.println("cluster " + folderName + ", #file: " + entry.getValue().size());
+                    String folderName = Paths.get(outputDir, "fold_" + entry.getKey()).toString();
+                    System.out.println("fold " + folderName + ", #file: " + entry.getValue().size());
                     File folder = new File(folderName);
                     if (!folder.exists()) folder.mkdir();
 
                     //copy source to target using Files Class
-                    String separator = "/"; //Linux, MacOS separator = "/", Windows separator = "\\"
+                    String Lseparator = "/"; //Linux, MacOS separator = "/", Windows 
+                    String Wseparator = "\\";
                     for (int j = 0; j < entry.getValue().size(); ++j) {
                         String sourceFilePath = fileNames.get(Integer.valueOf(entry.getValue().get(j)));
-                        String[] splittedPath = sourceFilePath.split(Pattern.quote(separator));
-
-                        String sourceFileName = splittedPath[splittedPath.length-1];
-                        String targetFilePath = folder.getAbsolutePath()+ separator + sourceFileName;
+                        String[] splittedPath;
+                        String sourceFileName = "";
+                        String targetFilePath = "";
+                        if(sourceFilePath.split(Pattern.quote(Lseparator)).length > 1) {
+                        	splittedPath = sourceFilePath.split(Pattern.quote(Lseparator));
+                        	sourceFileName = splittedPath[splittedPath.length-1];
+                        	targetFilePath = folder.getAbsolutePath()+ Lseparator + sourceFileName;
+                        }else if(sourceFilePath.split(Pattern.quote(Wseparator)).length > 1) {
+                    		splittedPath = sourceFilePath.split(Pattern.quote(Wseparator));
+                    		sourceFileName = splittedPath[splittedPath.length-1];
+                    		targetFilePath = folder.getAbsolutePath()+ Wseparator + sourceFileName;
+                        }
+                        
                         Path sourceDirectory = Paths.get(sourceFilePath);
                         Path targetDirectory = Paths.get(targetFilePath);
                         Files.copy(sourceDirectory, targetDirectory, StandardCopyOption.REPLACE_EXISTING);
 
-                        try{
+                        try{ //I let this here but it should really be refactored
                             String sourceJavaFilePath = fileNames.get(Integer.valueOf(entry.getValue().get(j))).substring(0,
                                     fileNames.get(Integer.valueOf(entry.getValue().get(j))).length()-3)+"java";
                             String sourceJavaFileName = sourceFileName.substring(0,sourceFileName.length()-3)+"java";
-                            String targetJavaFilePath = folder.getAbsolutePath()+ separator + sourceJavaFileName;
+                            String targetJavaFilePath = folder.getAbsolutePath()+ Lseparator + sourceJavaFileName;
                             Path sourceJavaDirectory = Paths.get(sourceJavaFilePath);
                             Path targetJavaDirectory = Paths.get(targetJavaFilePath);
                             Files.copy(sourceJavaDirectory, targetJavaDirectory, StandardCopyOption.REPLACE_EXISTING);
 
                         }catch (Exception e){
-                            System.out.println("not found java file ");
+                            //System.out.println("not found java file ");
                         }
 
                     }
@@ -362,29 +372,49 @@ public class Cluster {
             else
                 outputDirectory.mkdirs();
             //run cluster algorithm
-            System.out.print("Running "+ (this.algorithmName.equals("1") ? "hierarchical " : "kmeans ") + "clustering algorithm ... " );
-            String outputCluster = this.outputDir+"/outputCluster.txt";
+            System.out.println("Running "+ (this.algorithmName.equals("1") ? "hierarchical " : "kmeans ") + "clustering algorithm ... " );
+            String outputCluster = Paths.get(this.outputDir, "outputCluster.txt").toString();
+            String clusterScript = Paths.get("clustering", "clustering.py").toString();
             String python3 = "python3 ";
             String python = "python ";
-            String commandStr = "clustering/clustering.py " + inputDataCSV + " " + outputCluster + " " + this.algorithmName+ " " + this.numberCluster + " "+ this.svd;
+            String commandStr = clusterScript + " " + inputDataCSV + " \"" + outputCluster + "\" " + this.algorithmName+ " " + this.numberCluster + " "+ this.svd;
             try{
                 Process proc = Runtime.getRuntime().exec(python3+commandStr); //Run on Mac/Linux
                 proc.waitFor();
             }catch(IOException e) {
                 try {
                     Process proc = Runtime.getRuntime().exec(python+commandStr); //Run on Windows
-                    proc.waitFor();
+                    BufferedReader stdInput = new BufferedReader(new 
+                            InputStreamReader(proc.getInputStream()));
+
+                       BufferedReader stdError = new BufferedReader(new 
+                            InputStreamReader(proc.getErrorStream()));
+                       proc.waitFor();
+                       
+                       // read the output from the command
+                       System.out.println("Here is the standard output of the command:\n");
+                       String s = "";
+                       while ((s = stdInput.readLine()) != null) {
+                           System.out.println(s);
+                       }
+                       
+                       // read any errors from the attempted command
+                       System.out.println("Here is the standard error of the command (if any):\n");
+                       while ((s = stdError.readLine()) != null) {
+                           System.out.println(s);
+                       }
                 }catch(IOException f) {
                     System.out.println("Couldn't run the python script to create clusters. Are you sure that python is installed ?\nIt should run with \"python\" or \"python3\"");
                     System.out.println("You should also have the python packages numpy, pandas and scipy installed (pip install packageName)");
                     System.exit(-1);
                 }
             }
-            System.out.println(" end.");
+            System.out.println("End of clustering algorithm.");
             //create sub-directories
             createClusterDir(this.outputDir,outputCluster);
             //delete temporary files
             //Files.deleteIfExists(Paths.get(inputDataCSV));
+            //Files.deleteIfExists(Paths.get(outputCluster, "outputCluster.txt"));
             //Files.deleteIfExists(Paths.get(outputCluster));
         }catch (Exception e){
             System.out.println("error: running clustering algorithm "+e);
